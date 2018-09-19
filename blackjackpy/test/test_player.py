@@ -50,9 +50,10 @@ def test_player_bet_action(player_with_balance):
 
 
 def test_player_cards_in_hand(player_with_balance):
+    import numpy as np
     player = player_with_balance
-    player.cards_in_hand = ['K', '10']
-    assert len(player.cards_in_hand) == 2
+    player.cards_in_hand = np.array(['K', '10'])
+    assert player.cards_in_hand.size == 2
 
 
 def test_player_hit(deck, player_with_balance):
@@ -67,3 +68,14 @@ def test_player_hit_on_empty_deck(empty_deck, player_with_balance):
     with pytest.raises(ValueError):
         player.hit(deck)
 
+def test_player_stand(player_with_balance):
+    player = player_with_balance
+    player.stand()
+    assert player.stand_flag == True
+
+def test_player_split(player_with_balance):
+    import numpy as np
+    player = player_with_balance
+    player.cards_in_hand = ['10', '10']
+    player.split()
+    assert (len(player.cards_in_hand[0]) == len(player.cards_in_hand[1]))

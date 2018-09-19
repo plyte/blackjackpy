@@ -3,6 +3,7 @@ from blackjackpy import app
 import numpy as np
 
 
+@pytest.fixture
 def build_deck():
     num_cards = 52
     deck = app.generate_deck(num_cards)
@@ -12,22 +13,26 @@ def test_raises():
     with pytest.raises(ValueError):
         deck = app.generate_deck(100)
 
-def test_type():
-    deck = app.generate_deck(52)
+def test_type(build_deck):
+    deck = build_deck
     assert(isinstance(deck, list))
 
-def test_length():
-    num_cards = 52
-    deck = app.generate_deck(num_cards)
-    assert(len(deck) == num_cards)
+def test_length(build_deck):
+    deck = build_deck
+    assert(len(deck) == 52)
 
-def test_unqiue():
-    num_cards = 52
-
-    deck = app.generate_deck(num_cards)
-    unique_vals = set(deck)
+def test_unqiue(build_deck):
+    unique_vals = set(build_deck)
     assert(len(unique_vals) == 13)
 
-      
+def test_shuffle(build_deck):
+    from blackjackpy import app
+    before_shuffle_deck = build_deck[:]
+    after_shuffle_deck = app.shuffle_deck(build_deck)[:]
+    assert(before_shuffle_deck != after_shuffle_deck)
+
+def test_pop(build_deck):
+    build_deck.pop(0)
+    assert(build_deck != 52)
       
 
