@@ -49,9 +49,11 @@ class Player:
             
             if self.hands[hand].current_bet == 0:
                   raise RuntimeError('You must have bet to surrender')
-                  
+
             self.balance += self.hands[hand].current_bet / 2
-            self.hands.pop(hand)
+
+            if len(self.hands) > 1:
+                  self.hands.pop(hand)
       
       def _split_hand(self, hand):
             
