@@ -73,13 +73,66 @@ def test_player_stand(player_with_balance):
     player.stand()
     assert player.stand_flag == True
 
-def test_player_split_not_enough(player_with_balance, hand=0):
-    import numpy as np
+def test_player_split_too_little_cards(player_with_balance, hand=0):
+    
     player = player_with_balance
     current_hand = player.hands[hand]
     player.bet(10)
-    previous_bet = current_hand.current_bet
     current_hand.cards = ['10']
 
     with pytest.raises(ValueError):
         player.split()
+
+def test_player_split_not_enough_balance(player_with_balance, hand=0):
+    
+    player = player_with_balance
+    current_hand = player.hands[hand]
+    player.bet(100)
+    current_hand.cards = ['10', '10']
+
+    with pytest.raises(ValueError):
+        player.split()
+
+def test_player_split_not_equal_cards(player_with_balance, hand=0):
+    
+    player = player_with_balance
+    current_hand = player.hands[hand]
+    player.bet(100)
+    current_hand.cards = ['K', '10']
+
+    with pytest.raises(ValueError):
+        player.split()
+
+def test_player_hit_after_split(player_with_balance, deck, hand=0):
+
+    player = player_with_balance
+    current_hand = player.hands[hand]
+    player.bet(10)
+    current_hand.cards = ['10', '10']
+    player.split()
+    player.hit(deck)
+    assert (len(player.hands[hand].cards) == 2)
+
+def test_player_surrender(player_with_balance, hand=0):
+
+    player = player_with_balance
+    previous_balance = player.balance
+    current_hand = player.hands[hand]
+
+    player.bet(10)
+    current_bet = current_hand.current_bet
+
+    player.surrender(hand)
+
+    assert (player.balance == previous_balance - current_bet / 2)
+
+def test_player_surrender_without_bet(player_with_balance, hand=0):
+
+    player = player_with_balance
+    current_hand = player.hands[hand]
+
+    current_hand.cards = ['K', '2', '3']
+
+    with pytest.raises(RuntimeError):
+        player.surrender(hand)
+

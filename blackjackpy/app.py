@@ -11,11 +11,15 @@ class Hand:
       def hit(self, deck):
             if (len(deck) == 0):
                   raise ValueError('Deck is empty')
-                  
+
             self.cards.append(deck.pop(0))
 
       def bet(self, how_much):
             self.current_bet = self.current_bet + how_much
+
+      def surrender(self):
+            self.cards = []
+            self.current_bet = 0
 
 
 class Player:
@@ -27,23 +31,27 @@ class Player:
             self.stand_flag = False
             self.total_bet = 0
 
-      def _sum_total_bets(self):
-            if len(self.current_bet) != 0 and isinstance(self.current_bet[0], list):
-                  print(self.current_bet)
-                  flattened_array = list(np.asarray(self.current_bet).flatten())
-                  print(flattened_array)
-                  total_bet = sum(flattened_array)
-            else:
-                  total_bet = sum(self.current_bet)
-
-            return total_bet
-
+                  
       def bet(self, how_much, hand=0):
             if how_much > self.balance:
                   raise ValueError('You bet above your available balance: {}'.format(self.balance))
 
+            self.total_bet += how_much
             self.hands[hand].bet(how_much)
             self.balance -= self.hands[hand].current_bet
+
+      def hit(self, deck, hand=0):
+            self.hands[hand].hit(deck)
+
+      def surrender(self, hand=0):
+            if len(self.hands[hand].cards) > 2:
+                  raise RuntimeError('You must have 2 or less cards in hand to surrender')
+            
+            if self.hands[hand].current_bet == 0:
+                  raise RuntimeError('You must have bet to surrender')
+                  
+            self.balance += self.hands[hand].current_bet / 2
+            self.hands.pop(hand)
       
       def _split_hand(self, hand):
             
