@@ -46,7 +46,7 @@ def test_player_pot_instantiation(player_with_balance):
 def test_player_bet_action(player_with_balance):
     player = player_with_balance
     player.bet(5)
-    assert player.balance == 100 - 5
+    assert player.balance == 100 - 5 and player.hands[0].current_bet == 5
 
 
 def test_player_cards_in_hand(player_with_balance):
@@ -56,26 +56,30 @@ def test_player_cards_in_hand(player_with_balance):
     assert player.cards_in_hand.size == 2
 
 
-def test_player_hit(deck, player_with_balance):
+def test_player_hit(deck, player_with_balance, hand=0):
     player = player_with_balance
-    player.hit(deck)
-    assert len(player.cards_in_hand) == 1
+    player.hands[hand].hit(deck)
+    assert len(player.hands[hand].cards) == 1
 
 
-def test_player_hit_on_empty_deck(empty_deck, player_with_balance):
+def test_player_hit_on_empty_deck(empty_deck, player_with_balance, hand=0):
     player = player_with_balance
     deck = empty_deck
     with pytest.raises(ValueError):
-        player.hit(deck)
+        player.hands[hand].hit(deck)
 
 def test_player_stand(player_with_balance):
     player = player_with_balance
     player.stand()
     assert player.stand_flag == True
 
-def test_player_split(player_with_balance):
+def test_player_split_not_enough(player_with_balance, hand=0):
     import numpy as np
     player = player_with_balance
-    player.cards_in_hand = ['10', '10']
-    player.split()
-    assert (len(player.cards_in_hand[0]) == len(player.cards_in_hand[1]))
+    current_hand = player.hands[hand]
+    player.bet(10)
+    previous_bet = current_hand.current_bet
+    current_hand.cards = ['10']
+
+    with pytest.raises(ValueError):
+        player.split()

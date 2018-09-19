@@ -2,50 +2,80 @@ import numpy as np
 
 from random import shuffle
 
+class Hand:
+
+      def __init__(self):
+            self.cards = []
+            self.current_bet = 0
+      
+      def hit(self, deck):
+            if (len(deck) == 0):
+                  raise ValueError('Deck is empty')
+                  
+            self.cards.append(deck.pop(0))
+
+      def bet(self, how_much):
+            self.current_bet = self.current_bet + how_much
+
+
 class Player:
 
       def __init__(self, name, balance = 0):
             self.name = name
             self.balance = balance
-            self.cards_in_hand = []
+            self.hands = [Hand()]
             self.stand_flag = False
+            self.total_bet = 0
 
-      def bet(self, how_much):
-            self.balance -= how_much
-
-      def _place_in_hand(self, card, hand=0):
-            print('Placed card in hand')
-            if len(self.cards_in_hand) != 0 and isinstance(self.cards_in_hand[0], list):
-                  self.cards_in_hand[hand].append(card)
+      def _sum_total_bets(self):
+            if len(self.current_bet) != 0 and isinstance(self.current_bet[0], list):
+                  print(self.current_bet)
+                  flattened_array = list(np.asarray(self.current_bet).flatten())
+                  print(flattened_array)
+                  total_bet = sum(flattened_array)
             else:
-                  self.cards_in_hand.append(card)
+                  total_bet = sum(self.current_bet)
 
+            return total_bet
+
+      def bet(self, how_much, hand=0):
+            if how_much > self.balance:
+                  raise ValueError('You bet above your available balance: {}'.format(self.balance))
+
+            self.hands[hand].bet(how_much)
+            self.balance -= self.hands[hand].current_bet
       
-      def _draw(self, deck, hand=0):
-            print('Drawing card')
-            if (len(deck) == 0):
-                  raise ValueError
-            else:
-                  self._place_in_hand(deck.pop(0))
+      def _split_hand(self, hand):
+            
+            current_hand = hand
+            current_bet = current_hand.current_bet
+            card_to_split_with = current_hand.cards.pop(0)
+            
+            new_hand = Hand()
+            new_hand.cards.append(card_to_split_with)
+            new_hand.current_bet = current_bet
 
-      def hit(self, deck, hand=0):
-            print('Player hit')
-            self._draw(deck, hand)
+            self.hands.append(new_hand)
 
       def stand(self):
             self.stand_flag = True
 
-      def split(self):
+      def split(self, hand=0):
             """
             If the player contains two of the same denominations then the user
             may split his/her hand into two hands that are to be evaluated seperately 
             and then the best is doubled
             """
-            if (len(self.cards_in_hand) == 0):
+            current_hand = self.hands[hand]
+
+            if (current_hand.current_bet*2 > self.balance):
+                  raise ValueError('You do not have enough balance to complete this bet')
+
+            if (len(current_hand.cards) != 2):
                   raise ValueError('There are not enough cards in the hand to split')
             
-            if (self.cards_in_hand[0] == self.cards_in_hand[1]):
-                  self.cards_in_hand = [[val] for val in self.cards_in_hand]
+            if (current_hand.cards[0] == current_hand.cards[1]):
+                  self._split_hand(current_hand)
             else:
                   raise ValueError('The cards are not of the same denomination')
 
