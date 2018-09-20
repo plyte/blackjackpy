@@ -6,7 +6,7 @@ class Blackjack:
 
       def __init__(self, minimum_bet):
             self.minimum_bet = minimum_bet
-            self.actions = ['hit', 'bet', 'double down', 'split', 'stand']
+            self.actions = 'bet (1), split (2), hit (3), stand (4), and double down (5)'
             self.start_flag = False
             self.dealer = Dealer('Dealer')
             self.players = []
@@ -48,9 +48,30 @@ class Blackjack:
             print('There are no more cards in the deck!')
             print('The game is now over')
 
+      def players_round(self):
+
+            stopping_condition_has_been_hit = False
+            while (not stopping_condition_has_been_hit):
+
+                  for player in self.players:
+
+                        for i, hand in enumerate(player.hands):
+                              while (not hand.stand_flag):
+                                    print('{}\'s turn'.format(player.name))
+                                    self.display_options()
+
+                                    action = int(raw_input('Please choose an action: '))
+                                    self.evaluate_action(player, action, i)
+
+                  stopping_condition_has_been_hit = True
+
+      def dealers_round(self):
+
+            self.dealer.play(self.deck)
+
       def round(self):
 
-            if (len(self.deck)):
+            if (len(self.deck) == 0):
                   self.display_finish_message()
             else:
                   self.dealer.deal(self.players, self.deck)
@@ -68,54 +89,61 @@ class Blackjack:
 
                   self.display_balances()
                   self.show_cards()
+                  self.players_round()
+                  self.dealers_round()
+                  #self.evaluate_winnings()
 
-                  stopping_condition_has_been_hit = False
-                  while (not stopping_condition_has_been_hit):
 
-                        for player in self.players:
-                              print('{}\'s turn'.format(player.name))
-                              self.display_options()
-                              action = raw_input('Please choose an action: ')
+                  
+                              
 
-      def evaluate_action(self, player, action):
+                        
 
-            switcher = {
-                  1: "bet",
-                  2: "split",
-                  3: "hit",
-                  4: "stand",
-                  5: "double down",
-            }
+      def display_players_hand(self, player, hand=0):
+            print('Your current hand: {}'.format(player.hands[hand].cards))
 
-            def bet(player, hand=0):
-                  how_much = raw_input('How much would you like to bet?: ')
-                  player.bet(how_much)
+
+      def evaluate_action(self, player, action, hand):
+
+            def bet(player):
+                  how_much = int(raw_input('How much would you like to add to your bet?: '))
+                  player.bet(how_much, hand)
             
             def split(player):
                   player.split()
             
             def hit(player):
                   player.hit(self.deck)
+                  self.display_players_hand(player, hand)
+
+            def stand(player):
+                  player.stand()
+                  print('')
+                  print('Round has ended for {}'.format(player.name))
+                  print('Once the dealer\'s turn is over the hand will be evaluated')
+                  print('')
 
             def double_down(player):
                   player.double_down(self.deck)
 
-            def stand(player):
-                  player.stand()
-                  print('Round has ended for {}'.format(player.name))
-                  print('Once the dealer\'s turn is over the hand will be evaluated')
+            switcher = {
+                  1: bet,
+                  2: split,
+                  3: hit,
+                  4: stand,
+                  5: double_down
+            }
 
-            if action in self.actions:
-                  switch (action):
+            if action in range(6):
+                  switcher.get(action)(player)
+            
 
 
 
 
       def display_options(self):
 
-            to_print = [action + ', ' for action in self.actions]
-            print_out = ''.join(to_print)
-            print('Actions you can choose: {}'.format(print_out))
+            print('Actions you can choose: {}'.format(self.actions))
 
 
       def display_balances(self):
@@ -153,6 +181,7 @@ class Hand:
                   raise ValueError('Deck is empty')
 
             self.cards.append(deck.pop(0))
+            self.evaluate()
 
       def bet(self, how_much):
             self.current_bet = self.current_bet + how_much
@@ -185,6 +214,10 @@ class Hand:
 
             total = self._calculate()      
             self.total_value = total    
+
+            if self.total_value > 21:
+                  print('You bust! You lost this round.')
+                  self.stand_flag = True
 
             return total
 
@@ -387,7 +420,9 @@ class Dealer(Player):
                   if self.hands[hand].evaluate() >= 17:
                         stopping_condition_has_been_hit = True
                   else:
+                        print('The dealer hit')
                         self.hit(deck, hand)
+                        print('The dealer\'s cards: {}'.format(self.hands[hand].cards))
       
       
 
