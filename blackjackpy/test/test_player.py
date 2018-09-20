@@ -68,10 +68,10 @@ def test_player_hit_on_empty_deck(empty_deck, player_with_balance, hand=0):
     with pytest.raises(ValueError):
         player.hands[hand].hit(deck)
 
-def test_player_stand(player_with_balance):
+def test_player_stand(player_with_balance, hand=0):
     player = player_with_balance
-    player.stand()
-    assert player.stand_flag == True
+    player.stand(hand)
+    assert player.hands[hand].stand_flag == True
 
 def test_player_split_too_little_cards(player_with_balance, hand=0):
     
@@ -136,3 +136,35 @@ def test_player_surrender_without_bet(player_with_balance, hand=0):
     with pytest.raises(RuntimeError):
         player.surrender(hand)
 
+def test_player_double_down(player_with_balance, deck, hand=0):
+
+    player = player_with_balance
+    current_hand = player.hands[hand]
+
+    current_hand.cards = ['K', '2', '3']
+    current_hand.bet(10)
+    previous_bet = current_hand.current_bet
+    player.double_down(deck, hand)
+
+    assert ((current_hand.current_bet == previous_bet * 2) and
+           (len(current_hand.cards) == 4))
+
+def test_player_double_down_with_no_bet(player_with_balance, deck, hand=0):
+
+    player = player_with_balance
+    current_hand = player.hands[hand]
+
+    current_hand.cards = ['K', '2', '3']
+
+    with pytest.raises(RuntimeError):
+        player.double_down(deck, hand)
+
+def test_player_evaluate(player_with_balance, deck, hand=0):
+    
+    player = player_with_balance
+    current_hand = player.hands[hand]
+
+    current_hand.cards = ['K', '10']
+    current_hand_score = current_hand.evaluate()
+
+    assert (current_hand_score == 20)
