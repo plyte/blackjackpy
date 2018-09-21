@@ -31,8 +31,8 @@ bets are returned with odds to the player
 @pytest.fixture
 def deck():
     from blackjackpy import app
-    num_cards = 52
-    deck = app.generate_deck(num_cards)
+    num_decks = 2
+    deck = app.generate_deck(num_decks)
     return deck
 
 
@@ -61,7 +61,7 @@ def instantiated_start_of_game():
 
 def test_start_of_game():
 
-    bj = app.Blackjack()
+    bj = app.Blackjack(10)
     bj.start()
 
     assert(bj.start_flag == True)
@@ -90,5 +90,57 @@ def test_deal(instantiated_start_of_game, deck, hand=0):
     assert((len(players[0].hands[hand].cards) == 2) and
            (len(players[1].hands[hand].cards) == 2) and
            (len(dealer.hands[hand].cards) == 2))
+
+def test_total_round(instantiated_start_of_game, hand=0):
+
+    dealer = app.Dealer('Dealer')
+    players = [app.Player('Matthew', 100)]
+    deck = ['K', '10', '4', 'K', 'Q']
+    dealer.deal(players, deck)
+
+    current_hand = players[0].hands[hand]
+
+    players[0].bet(10)
+
+    current_hand.cards = []
+    current_hand_score = current_hand.evaluate()
+
+    players[0].stand()
+
+    dealer.play(deck)
+
+    assert ((current_hand_score < dealer.hands[hand].evaluate()) and 
+            (players[0].turn_end == True))
+
+def test_total_round_player_wins(instantiated_start_of_game, hand=0):
+
+    dealer = app.Dealer('Dealer')
+    players = [app.Player('Matthew', 100)]
+    deck = ['K', '10', '4', 'K', '7']
+    dealer.deal(players, deck)
+
+    current_hand = players[0].hands[hand]
+
+    players[0].bet(10)
+    players[0].hit(deck)
+
+    current_hand_score = current_hand.evaluate()
+
+    players[0].stand()
+    dealer.play(deck)
+
+    assert ((current_hand_score > dealer.hands[hand].evaluate()) and 
+            (players[0].turn_end == True))
+
+def test_dealer_play_round(instantiated_start_of_game, hand=0):
+
+    dealer = instantiated_start_of_game[0]
+    players = instantiated_start_of_game[1]
+
+    deck = ['A', 'K', 'Q', '10', 'A', 'A']
+
+    dealer.deal(players=players, deck=deck)
+
+    assert (players[1].turn_end == True)
 
 

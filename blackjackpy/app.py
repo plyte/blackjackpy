@@ -1,38 +1,48 @@
 import numpy as np
 
 from random import shuffle
+import os
+import sys
+
+_PAYOUT = 1.5
 
 class Blackjack:
 
       def __init__(self, minimum_bet):
             self.minimum_bet = minimum_bet
-            self.actions = 'bet (1), split (2), hit (3), stand (4), and double down (5)'
+            self.actions = 'bet (1), split (2), hit (3), stand (4), double down (5), and quit (6)'
             self.start_flag = False
+            self.stop_flag = False
             self.dealer = Dealer('Dealer')
             self.players = []
             self.deck = []
+            self.payout = _PAYOUT
 
       def start(self):
+
             self.start_flag = True
 
       def welcome_message(self):
-            print('Welcome to blackjackpy built by Matthew Jones')
 
-            deck = generate_deck(num_cards=52)
+            print('Welcome to blackjackpy built by Matthew Jones')
+            print('Payout is {}'.format(_PAYOUT))
+
+            deck = generate_deck(num_decks=2)
             self.deck = shuffle_deck(deck)
 
-            num_players = int(raw_input('Please indicate the number of players: '))
-            starting_balance = int(raw_input('Please indicate the starting balance: '))
+            num_players = int(input('Please indicate the number of players: '))
+            starting_balance = int(input('Please indicate the starting balance: '))
 
             for i in range(int(num_players)):
 
-                  name = raw_input('Please input player {}\'s name: '.format(i))
+                  name = input('Please input player {}\'s name: '.format(i))
                   self.players.append(Player(name, balance=starting_balance))
 
             self.start()
             
 
       def show_cards(self):
+
             print('')
             print('Dealers face up card: {}'.format(self.dealer.hands[0].cards[0]))
             print('')
@@ -47,9 +57,9 @@ class Blackjack:
 
             print('There are no more cards in the deck!')
             print('The game is now over')
+            self.stop_flag = True
 
       def players_round(self):
-
             stopping_condition_has_been_hit = False
             while (not stopping_condition_has_been_hit):
 
@@ -60,14 +70,84 @@ class Blackjack:
                                     print('{}\'s turn'.format(player.name))
                                     self.display_options()
 
-                                    action = int(raw_input('Please choose an action: '))
+                                    action = int(input('Please choose an action: '))
                                     self.evaluate_action(player, action, i)
 
                   stopping_condition_has_been_hit = True
 
+      def payout_round(self):
+            dealers_hand = self.dealer.hands[0]
+            dealers_hand_val = dealers_hand.evaluate()
+
+            for player in self.players:
+
+                  for hand in player.hands:
+                        
+                        if (hand.evaluate() > 21):
+
+                              print('{} lost by bust with hand {}'.format(player.name, hand.cards))
+
+                        elif ((dealers_hand_val > hand.evaluate()) and \
+                              (dealers_hand_val <= 21) or \
+                              (dealers_hand_val == hand.evaluate())):
+
+                              print('{} lost with {} against the dealer\'s hand {}'\
+                                    .format(player.name, hand.cards, dealers_hand.cards))
+                        
+                        else:
+
+                              print('{}\'s score: {}'.format(player.name, hand.evaluate()))
+                              print('{}\'s score: {}'.format('Dealer', dealers_hand.evaluate()))
+                              print('{} won with {} against the dealer\'s hand {}'\
+                                    .format(player.name, hand.cards, dealers_hand.cards))
+                              player.balance += hand.current_bet * self.payout
+
+                        self.clean_hand(hand)
+
+            self.clean_hand(dealers_hand)
+
+      def clean_hand(self, hand):
+
+            hand.current_bet = 0
+            hand.cards = []
+            hand.total_value = 0
+            hand.stand_flag = False
+
       def dealers_round(self):
 
             self.dealer.play(self.deck)
+
+      def check_end_of_game(self):
+
+            for player in self.players:
+
+                  if player.balance <= 0:
+
+                        player.end_game = False
+
+            for player in self.players:
+
+                  if player.end_game == True:
+                        continue
+                  else:
+                        return False
+
+            return True
+
+      def check_blackjack(self):
+
+            for player in self.players:
+                  if player.hands[0].evaluate() == 21:
+                        print('{} wins with a blackjack!'.format(player.name))
+                        player.turn_end = True
+            
+            for player in self.players:
+                  if player.turn_end:
+                        continue
+                  else:
+                        return False
+
+            return True
 
       def round(self):
 
@@ -87,60 +167,68 @@ class Blackjack:
                   for player in self.players:
                         player.bet(self.minimum_bet)
 
+                  if self.check_blackjack():
+                        self.turn_end = True
+
                   self.display_balances()
                   self.show_cards()
+
                   self.players_round()
+                  if self.check_blackjack():
+                        self.turn_end = True
+
                   self.dealers_round()
-                  #self.evaluate_winnings()
 
+                  self.payout_round()
+                  if self.check_end_of_game():
+                        self.end_game = True
 
-                  
-                              
+      def display_players_hand(self, player, hand):
 
-                        
-
-      def display_players_hand(self, player, hand=0):
             print('Your current hand: {}'.format(player.hands[hand].cards))
 
 
       def evaluate_action(self, player, action, hand):
 
-            def bet(player):
-                  how_much = int(raw_input('How much would you like to add to your bet?: '))
+            hand = hand
+
+            def bet(player, hand):
+                  how_much = int(input('How much would you like to add to your bet?: '))
                   player.bet(how_much, hand)
             
-            def split(player):
+            def split(player, hand):
                   player.split()
             
-            def hit(player):
-                  player.hit(self.deck)
+            def hit(player, hand):
+                  player.hit(self.deck, hand)
                   self.display_players_hand(player, hand)
 
-            def stand(player):
-                  player.stand()
+            def stand(player, hand):
+                  player.stand(hand)
                   print('')
                   print('Round has ended for {}'.format(player.name))
                   print('Once the dealer\'s turn is over the hand will be evaluated')
                   print('')
 
-            def double_down(player):
+            def double_down(player, hand):
                   player.double_down(self.deck)
+
+            def quit_game(player, hand):
+                  print('Thanks for playing!')
+                  sys.exit()
 
             switcher = {
                   1: bet,
                   2: split,
                   3: hit,
                   4: stand,
-                  5: double_down
+                  5: double_down,
+                  6: quit_game
             }
 
-            if action in range(6):
-                  switcher.get(action)(player)
+            if action in range(7):
+                  switcher.get(action)(player, hand)
             
-
-
-
-
       def display_options(self):
 
             print('Actions you can choose: {}'.format(self.actions))
@@ -150,8 +238,6 @@ class Blackjack:
 
             for player in self.players:
                   print('{}\'s current balance: {}'.format(player.name, player.balance))
-
-
 
       
 
@@ -193,10 +279,15 @@ class Hand:
       def _calculate(self):
 
             total = 0
+            temp_total = 0
 
             for card in self.cards:
                   if isinstance(self.evaluate_map[card], list):
-                        total += max(self.evaluate_map[card])
+                        temp_total += max(self.evaluate_map[card])
+                        if (temp_total > 21):
+                              total += min(self.evaluate_map[card])
+                        else:
+                              total += max(self.evaluate_map[card])
                   else:
                         total += self.evaluate_map[card]
 
@@ -204,7 +295,7 @@ class Hand:
                   total = 0
                   for card in self.cards:
                         if isinstance(self.evaluate_map[card], list):
-                              total += max(self.evaluate_map[card])
+                              total += min(self.evaluate_map[card])
                         else:
                               total += self.evaluate_map[card]
 
@@ -215,14 +306,11 @@ class Hand:
             total = self._calculate()      
             self.total_value = total    
 
-            if self.total_value > 21:
-                  print('You bust! You lost this round.')
+            if self.total_value >= 21:
+
                   self.stand_flag = True
 
             return total
-
-
-
 
 class Player:
       """
@@ -236,9 +324,9 @@ class Player:
             self.name = name
             self.balance = balance
             self.hands = [Hand()]
-            self.stand_flag = False
+            self.turn_end = False
+            self.end_game = False
             self.total_bet = 0
-
                   
       def bet(self, how_much, hand=0):
             """
@@ -316,6 +404,19 @@ class Player:
 
             self.hands.append(new_hand)
 
+      def _check_turn_end(self):
+
+
+            for hand in self.hands:
+
+                  if hand.stand_flag == True:
+                        continue
+                        hand.cards = []
+                  else:
+                        return False
+            
+            return True
+
       def stand(self, hand=0):
             """
             The player may stand on the specific hand. If a player stands then the player 
@@ -329,6 +430,8 @@ class Player:
                   void
             """
             self.hands[hand].stand_flag = True
+            if self._check_turn_end():
+                  self.turn_end = True
 
       def split(self, hand=0):
             """
@@ -378,6 +481,11 @@ class Player:
 
 class Dealer(Player):
 
+      def __init__(self, name):
+            self.name = name
+            self.hands = [Hand()]
+            self.payout = _PAYOUT
+
       def hit(self, deck, hand=0):
             """
             The player is given another card for the specific hand specified by the hand argument
@@ -398,15 +506,33 @@ class Dealer(Player):
                   raise RuntimeError('The dealer doesn\'t hit on a score of above 17')
             else:
                   self.hands[hand].hit(deck)
+
+      def award_winnings(self, player, hand=0):
+
+            players_current_bet = player.hands[hand].current_bet
+            total_payout = players_current_bet * self.payout
+            player.balance += total_payout
+            print('Awarded {}: {}'.format(player.name, total_payout))
+            print('Total payout: {}'.format(total_payout))
+            print('{}\'s current balance: {}'.format(player.name, player.balance))
       
-      def deal(self, players, deck, hand=0):
+      def deal(self, players, deck):
 
             for _ in range(2):
 
                   for player in players:
-                        player.hands[hand].cards.append(deck.pop(0))
+                        player.hands[0].cards.append(deck.pop(0))
 
-                  self.hands[hand].cards.append(deck.pop(0))
+                  self.hands[0].cards.append(deck.pop(0))
+
+            for player in players:
+
+                  if player.hands[0].evaluate() == 21:
+
+                        print('BLACKJACK for {}!!!!'.format(player.name))
+                        self.award_winnings(player)
+                        player.turn_end = True
+                  
             
 
       def play(self, deck, hand=0):
@@ -426,14 +552,16 @@ class Dealer(Player):
       
       
 
-def generate_deck(num_cards):
+def generate_deck(num_decks):
 
       deck = []
+      cards_in_deck = 52
+      total_cards_in_deck = num_decks * cards_in_deck
 
-      if num_cards % 52 != 0 or num_cards == 0: 
-            raise ValueError('The number of cards must be a multiple of 52')
+      if num_decks <= 0: 
+            raise ValueError('The number of cards must be greater than or equal to 1')
       
-      amount_of_each = num_cards/13
+      amount_of_each = int(total_cards_in_deck/13)
 
       for i in range(1, 14):
             if i == 1:

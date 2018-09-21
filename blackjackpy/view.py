@@ -9,7 +9,9 @@ if __name__ == "__main__":
     bj = app.Blackjack(MINIMUM_BETS)
 
     bj.welcome_message()
-    bj.round()
+    while not bj.stop_flag:
+        bj.round()
+
 
 
 
