@@ -59,6 +59,7 @@ class Blackjack:
             print('The game is now over')
             self.stop_flag = True
 
+
       def players_round(self):
             stopping_condition_has_been_hit = False
             while (not stopping_condition_has_been_hit):
@@ -67,10 +68,14 @@ class Blackjack:
 
                         for i, hand in enumerate(player.hands):
                               while (not hand.stand_flag):
+                                    print('')
                                     print('{}\'s turn'.format(player.name))
                                     self.display_options()
 
+                                    print('{}\'s current hand: {}'.format(player.name, hand.cards))
+
                                     action = int(input('Please choose an action: '))
+
                                     self.evaluate_action(player, action, i)
 
                   stopping_condition_has_been_hit = True
@@ -102,19 +107,18 @@ class Blackjack:
                                     .format(player.name, hand.cards, dealers_hand.cards))
                               player.balance += hand.current_bet * self.payout
 
-                        self.clean_hand(hand)
+                  self.clean_hands(player)
 
-            self.clean_hand(dealers_hand)
+            self.clean_hands(self.dealer)
 
-      def clean_hand(self, hand):
+      def clean_hands(self, player):
 
-            hand.current_bet = 0
-            hand.cards = []
-            hand.total_value = 0
-            hand.stand_flag = False
+            player.hands = [Hand()]
 
       def dealers_round(self):
 
+            print('')
+            print('Dealer\'s turn')
             self.dealer.play(self.deck)
 
       def check_end_of_game(self):
@@ -130,7 +134,9 @@ class Blackjack:
                   if player.end_game == True:
                         continue
                   else:
-                        return False
+                        if (len(self.deck) * len(self.players) > 10):
+                              return False
+
 
             return True
 
@@ -142,12 +148,24 @@ class Blackjack:
                         player.turn_end = True
             
             for player in self.players:
-                  if player.turn_end:
-                        continue
-                  else:
+                  if not player.turn_end:
                         return False
 
+            return True        
+
+      def check_players_bust(self):
+            """
+            If all of the players in the game have busted all of their hands then
+            return True, else return False
+            """
+
+            for player in self.players:
+                  for hand in player.hands:
+                        if not (hand.evaluate() > 21):
+                              return False
+            
             return True
+                      
 
       def round(self):
 
@@ -174,10 +192,14 @@ class Blackjack:
                   self.show_cards()
 
                   self.players_round()
-                  if self.check_blackjack():
-                        self.turn_end = True
+                  # if statement results in True if atleast one player doesn't bust
+                  if not self.check_players_bust():
 
-                  self.dealers_round()
+                        # if statement results in True if atleast one player doesn't have a blackjack
+                        if not self.check_blackjack():
+                              self.dealers_round()
+                  else:
+                        print('Everyone had a blackjack!')
 
                   self.payout_round()
                   if self.check_end_of_game():
@@ -211,7 +233,8 @@ class Blackjack:
                   print('')
 
             def double_down(player, hand):
-                  player.double_down(self.deck)
+                  player.double_down(self.deck, hand)
+                  stand(player, hand)
 
             def quit_game(player, hand):
                   print('Thanks for playing!')
@@ -458,7 +481,7 @@ class Player:
             else:
                   raise ValueError('The cards are not of the same denomination')
 
-      def double_down(self, deck, hand=0):
+      def double_down(self, deck, hand):
             """
             The player may double down. The player gets exactly one more card, the players bet
             doubles, and the turn ends.
@@ -477,7 +500,6 @@ class Player:
 
             current_hand.hit(deck)
             current_hand.bet(current_hand.current_bet)
-            self.stand_flag = True
 
 class Dealer(Player):
 
@@ -524,16 +546,7 @@ class Dealer(Player):
                         player.hands[0].cards.append(deck.pop(0))
 
                   self.hands[0].cards.append(deck.pop(0))
-
-            for player in players:
-
-                  if player.hands[0].evaluate() == 21:
-
-                        print('BLACKJACK for {}!!!!'.format(player.name))
-                        self.award_winnings(player)
-                        player.turn_end = True
                   
-            
 
       def play(self, deck, hand=0):
             """

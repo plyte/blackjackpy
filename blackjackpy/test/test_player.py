@@ -214,3 +214,9 @@ def test_player_evaluate_edge_with_ace(player_with_balance):
 
     assert player.hands[0].evaluate() == 13
 
+def test_player_evaluate_edge_with_twenty_two(player_with_balance):
+
+    player = player_with_balance
+    player.hands[0].cards = ['9', '3', '10']
+
+    assert player.hands[0].evaluate() == 22
